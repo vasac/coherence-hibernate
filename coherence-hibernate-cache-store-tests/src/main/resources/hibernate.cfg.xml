@@ -37,8 +37,8 @@
         <!-- Drop and re-create the database schema on startup -->
         <property name="hbm2ddl.auto">update</property>
 
-        <mapping resource="org/hibernate/tutorial/domain/Event.hbm.xml"/>
-        <mapping resource="org/hibernate/tutorial/domain/Person.hbm.xml"/>
+        <mapping resource="org/hibernate/tutorial/domain/Event.mapping.xml"/>
+        <mapping resource="org/hibernate/tutorial/domain/Person.mapping.xml"/>
 
     </session-factory>
 

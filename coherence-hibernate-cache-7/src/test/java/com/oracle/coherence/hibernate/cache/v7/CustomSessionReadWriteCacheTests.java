@@ -14,62 +14,60 @@ import com.oracle.coherence.hibernate.cache.v7.support.Foo;
 import com.tangosol.net.CacheFactory;
 import org.assertj.core.api.Assertions;
 import org.hibernate.Session;
-import org.hibernate.cfg.Configuration;
-import org.hibernate.cfg.Environment;
 import org.hibernate.query.Query;
 import org.hibernate.stat.CacheRegionStatistics;
 import org.hibernate.stat.Statistics;
-import org.hibernate.testing.junit4.BaseCoreFunctionalTestCase;
-import org.junit.AfterClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.hibernate.testing.orm.junit.DomainModel;
+import org.hibernate.testing.orm.junit.ServiceRegistry;
+import org.hibernate.testing.orm.junit.SessionFactoryScope;
+import org.hibernate.testing.orm.junit.Setting;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Gunnar Hillert
  */
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase {
+@ServiceRegistry(settings = {
+		@Setting(name = "hibernate.show_sql", value = "true"),
+		@Setting(name = "hibernate.cache.use_second_level_cache", value = "true"),
+		@Setting(name = "hibernate.cache.use_query_cache", value = "true"),
+		@Setting(name = "hibernate.cache.region.factory_class", value = "com.oracle.coherence.hibernate.cache.v7.CoherenceRegionFactory"),
+		@Setting(name = "com.oracle.coherence.hibernate.cache.cache_config_file_path", value = "tests-hibernate-second-level-cache-config.xml")
+})
+@org.hibernate.testing.orm.junit.SessionFactory(generateStatistics = true)
+@DomainModel(annotatedClasses = Foo.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class CustomSessionReadWriteCacheTests {
 
 	private Long idOfSavedItem = null;
 
-	@AfterClass
+	@AfterAll
 	public static void after() {
 		CacheFactory.shutdown();
 	}
 
-	@Override
-	protected Class<?>[] getAnnotatedClasses() {
-		return new Class[] { Foo.class };
-	}
-
-	@Override
-	protected void configure(Configuration cfg) {
-		super.configure(cfg);
-		cfg.setProperty(Environment.CACHE_REGION_PREFIX, "");
-		cfg.setProperty(Environment.SHOW_SQL, "true");
-		cfg.setProperty(Environment.GENERATE_STATISTICS, "true");
-		cfg.setProperty(Environment.USE_SECOND_LEVEL_CACHE, "true");
-		cfg.setProperty(Environment.USE_QUERY_CACHE, "true");
-		cfg.setProperty(Environment.CACHE_REGION_FACTORY, CoherenceRegionFactory.class.getName());
-		cfg.setProperty("com.oracle.coherence.hibernate.cache.cache_config_file_path", "tests-hibernate-second-level-cache-config.xml");
-	}
-
 	@Test
-	public void test_01_persistItem() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(1)
+	public void persistItem(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 
-		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) this.sessionFactory().getCache().getRegion("foo");
+		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) scope.getSessionFactory().getCache().getRegion("foo");
 		final CoherenceStorageAccessImpl coherenceStorageAccess = (CoherenceStorageAccessImpl) region.getCacheStorageAccess();
 
 		Assertions.assertThat(coherenceStorageAccess.getDelegate().getElementCountInMemory()).isEqualTo(0);
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
 		final Foo itemToSave = new Foo("bar");
-		this.idOfSavedItem = (Long) session.save(itemToSave);
+		session.persist(itemToSave);
+		this.idOfSavedItem = itemToSave.getId();
 		session.flush();
 		session.getTransaction().commit();
 
@@ -80,13 +78,14 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 	}
 
 	@Test
-	public void test_02_getPersistedItem() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(2)
+	public void getPersistedItem(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
-		this.sessionFactory().getCache().getRegion("foo");
-		final Session session = openSession();
+		scope.getSessionFactory().getCache().getRegion("foo");
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
-		final Foo itemFromCache = session.get(Foo.class, this.idOfSavedItem);
+		final Foo itemFromCache = session.find(Foo.class, this.idOfSavedItem);
 		session.getTransaction().commit();
 		session.clear();
 		session.close();
@@ -97,15 +96,16 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 	}
 
 	@Test
-	public void test_03_updateAndRollbackPersistedItem() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(3)
+	public void updateAndRollbackPersistedItem(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
-		final Foo itemToUpdate = session.get(Foo.class, this.idOfSavedItem);
+		final Foo itemToUpdate = session.find(Foo.class, this.idOfSavedItem);
 		itemToUpdate.setName("newdata");
-		session.update(itemToUpdate);
+		session.merge(itemToUpdate);
 		session.flush();
 		session.getTransaction().rollback();
 		session.clear();
@@ -117,12 +117,13 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 	}
 
 	@Test
-	public void test_04_retrievePersistedItemAfterRollBack() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(4)
+	public void retrievePersistedItemAfterRollBack(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final Session session = openSession();
-		final Foo fooItem = session.get(Foo.class, this.idOfSavedItem);
+		final Session session = scope.getSessionFactory().openSession();
+		final Foo fooItem = session.find(Foo.class, this.idOfSavedItem);
 
 		assertThat(itemStatistics.getPutCount()).isEqualTo(1);
 		assertThat(itemStatistics.getHitCount()).isEqualTo(3);
@@ -131,16 +132,17 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 	}
 
 	@Test
-	public void test_05_updateItem() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(5)
+	public void updateItem(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
-		final Foo itemToUpdate = session.get(Foo.class, this.idOfSavedItem);
+		final Foo itemToUpdate = session.find(Foo.class, this.idOfSavedItem);
 
 		itemToUpdate.setName("coherence_rocks");
-		session.update(itemToUpdate);
+		session.merge(itemToUpdate);
 		session.flush();
 		session.getTransaction().commit();
 		session.clear();
@@ -152,15 +154,16 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 	}
 
 	@Test
-	public void test_06_deleteItem() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(6)
+	public void deleteItem(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
-		final Foo itemToUpdate = session.get(Foo.class, this.idOfSavedItem);
+		final Foo itemToUpdate = session.find(Foo.class, this.idOfSavedItem);
 
-		session.delete(itemToUpdate);
+		session.remove(itemToUpdate);
 		session.getTransaction().commit();
 		session.clear();
 		session.close();
@@ -171,13 +174,14 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 	}
 
 	@Test
-	public void test_07_getMissingItem() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(7)
+	public void getMissingItem(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
-		final Foo itemToUpdate = session.get(Foo.class, this.idOfSavedItem);
+		final Foo itemToUpdate = session.find(Foo.class, this.idOfSavedItem);
 		session.getTransaction().commit();
 		session.clear();
 		session.close();
@@ -191,11 +195,12 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 	}
 
 	@Test
-	public void test_08_addMultipleItems() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(8)
+	public void addMultipleItems(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
 
 		session.persist(new Foo("bar1"));
@@ -214,14 +219,15 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 	}
 
 	@Test
-	public void test_09_Query() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(9)
+	public void query(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
 
-		final Query<Foo> query = session.getNamedQuery("fooQuery");
+		final Query<Foo> query = session.createNamedQuery("fooQuery", Foo.class);
 		query.setCacheable(true);
 		query.setCacheRegion("fooQueryCache");
 		query.setParameter("name", "kenny%");
@@ -229,23 +235,13 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 
 		final CacheRegionStatistics fooListStatistics = statistics.getDomainDataRegionStatistics("fooQueryCache");
 
-		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) this.sessionFactory().getCache().getRegion("foo");
+		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) scope.getSessionFactory().getCache().getRegion("foo");
 		final CoherenceStorageAccessImpl coherenceStorageAccess = (CoherenceStorageAccessImpl) region.getCacheStorageAccess();
 
 		session.getTransaction().commit();
 		session.close();
 
-		/*
-		 * Compared to Hibernate 5.6.x, this test behaves slightly different. The returned entities of the query will
-		 * also be updated. The minimalPuts in AbstractEntityInitializer are hard-coded to false when calling
-		 * {@link org.hibernate.cache.spi.access.EntityDataAccess#putFromLoad(SharedSessionContractImplementor, Object, Object, Object)}.
-		 *
-		 * see:
-		 * - https://github.com/hibernate/hibernate-orm/blob/main/hibernate-core/src/main/java/org/hibernate/sql/results/graph/entity/AbstractEntityInitializer.java#L979
-		 * - https://github.com/hibernate/hibernate-orm/blob/6.0/migration-guide.adoc#query-result-cache
-		 */
-		// assertThat(itemStatistics.getPutCount()).isEqualTo(6);
-		assertThat(itemStatistics.getPutCount()).isEqualTo(8);
+		assertThat(itemStatistics.getPutCount()).isEqualTo(6);
 
 		assertThat(itemStatistics.getHitCount()).isEqualTo(5);
 		assertThat(itemStatistics.getMissCount()).isEqualTo(1);
@@ -258,14 +254,15 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 	}
 
 	@Test
-	public void test_10_QuerySecondTime() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(10)
+	public void querySecondTime(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
 
-		final Query<Foo> query = session.getNamedQuery("fooQuery");
+		final Query<Foo> query = session.createNamedQuery("fooQuery", Foo.class);
 		query.setCacheable(true);
 		query.setCacheRegion("fooQueryCache");
 		query.setParameter("name", "kenny%");
@@ -273,7 +270,7 @@ public class CustomSessionReadWriteCacheTests extends BaseCoreFunctionalTestCase
 		session.getTransaction().commit();
 		session.close();
 
-		assertThat(itemStatistics.getPutCount()).isEqualTo(8);
+		assertThat(itemStatistics.getPutCount()).isEqualTo(6);
 		assertThat(itemStatistics.getHitCount()).isEqualTo(5);
 		assertThat(itemStatistics.getMissCount()).isEqualTo(1);
 

@@ -12,60 +12,57 @@ import com.oracle.coherence.hibernate.cache.v7.support.Book;
 import com.tangosol.net.CacheFactory;
 import org.assertj.core.api.Assertions;
 import org.hibernate.Session;
-import org.hibernate.cfg.Configuration;
-import org.hibernate.cfg.Environment;
 import org.hibernate.stat.CacheRegionStatistics;
 import org.hibernate.stat.NaturalIdStatistics;
 import org.hibernate.stat.Statistics;
-import org.hibernate.testing.junit4.BaseCoreFunctionalTestCase;
-import org.junit.AfterClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.hibernate.testing.orm.junit.DomainModel;
+import org.hibernate.testing.orm.junit.ServiceRegistry;
+import org.hibernate.testing.orm.junit.SessionFactoryScope;
+import org.hibernate.testing.orm.junit.Setting;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Gunnar Hillert
  */
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class NaturalIdCacheTests extends BaseCoreFunctionalTestCase {
+@ServiceRegistry(settings = {
+		@Setting(name = "hibernate.cache.use_second_level_cache", value = "true"),
+		@Setting(name = "hibernate.cache.use_query_cache", value = "true"),
+		@Setting(name = "hibernate.cache.region.factory_class", value = "com.oracle.coherence.hibernate.cache.v7.CoherenceRegionFactory"),
+		@Setting(name = "com.oracle.coherence.hibernate.cache.cache_config_file_path", value = "tests-hibernate-second-level-cache-config.xml")
+})
+@org.hibernate.testing.orm.junit.SessionFactory(generateStatistics = true)
+@DomainModel(annotatedClasses = Book.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class NaturalIdCacheTests {
 
 	private Long idOfBook1 = null;
 	private Long idOfBook2 = null;
 	private Long idOfBook3 = null;
 
-	@AfterClass
+	@AfterAll
 	public static void after() {
 		CacheFactory.shutdown();
 	}
 
-	@Override
-	protected Class<?>[] getAnnotatedClasses() {
-		return new Class[] { Book.class };
-	}
-
-	@Override
-	protected void configure(Configuration cfg) {
-		super.configure(cfg);
-		cfg.setProperty(Environment.CACHE_REGION_PREFIX, "");
-		cfg.setProperty(Environment.GENERATE_STATISTICS, "true");
-		cfg.setProperty(Environment.USE_SECOND_LEVEL_CACHE, "true");
-		cfg.setProperty(Environment.USE_QUERY_CACHE, "true");
-		cfg.setProperty(Environment.CACHE_REGION_FACTORY, CoherenceRegionFactory.class.getName());
-		cfg.setProperty("com.oracle.coherence.hibernate.cache.cache_config_file_path", "tests-hibernate-second-level-cache-config.xml");
-	}
-
 	@Test
-	public void test_01_persistSeveralBooks() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(1)
+	public void persistSeveralBooks(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 
-		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) this.sessionFactory().getCache().getRegion("book");
+		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) scope.getSessionFactory().getCache().getRegion("book");
 		final CoherenceStorageAccessImpl coherenceStorageAccess = (CoherenceStorageAccessImpl) region.getCacheStorageAccess();
 
 		Assertions.assertThat(coherenceStorageAccess.getDelegate().getElementCountInMemory()).isEqualTo(0);
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
 
 		final Book book1 = new Book(
@@ -83,9 +80,12 @@ public class NaturalIdCacheTests extends BaseCoreFunctionalTestCase {
 				"John Kricher",
 				"0691115133");
 
-		this.idOfBook1 = (Long) session.save(book1);
-		this.idOfBook2 = (Long) session.save(book2);
-		this.idOfBook3 = (Long) session.save(book3);
+		session.persist(book1);
+		session.persist(book2);
+		session.persist(book3);
+		this.idOfBook1 = book1.getId();
+		this.idOfBook2 = book2.getId();
+		this.idOfBook3 = book3.getId();
 
 		session.flush();
 		session.getTransaction().commit();
@@ -103,14 +103,16 @@ public class NaturalIdCacheTests extends BaseCoreFunctionalTestCase {
 	}
 
 	@Test
-	public void test_02_retrieveBookByNaturalId() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(2)
+	public void retrieveBookByNaturalId(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
 
-		final Book book = session.bySimpleNaturalId(Book.class)
-			.load("0061146668");
+		final Book book = session.byNaturalId(Book.class)
+				.using("isbn10", "0061146668")
+				.load();
 
 		assertThat(book.getId()).isSameAs(this.idOfBook1);
 

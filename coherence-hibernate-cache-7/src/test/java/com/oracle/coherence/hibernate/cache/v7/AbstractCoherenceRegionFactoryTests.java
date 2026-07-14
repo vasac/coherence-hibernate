@@ -9,16 +9,11 @@ package com.oracle.coherence.hibernate.cache.v7;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.hibernate.boot.registry.StandardServiceRegistry;
-import org.hibernate.boot.registry.selector.spi.StrategySelector;
 import org.hibernate.boot.spi.SessionFactoryOptions;
-import org.hibernate.cache.internal.DefaultCacheKeysFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.mockito.Mockito;
 
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * AbstractCoherenceRegionFactoryTest is an abstract superclass for tests with a CoherenceRegionFactory in the fixture.
@@ -39,11 +34,6 @@ public abstract class AbstractCoherenceRegionFactoryTests {
      * The Properties used to start the CoherenceRegionFactory.
      */
     private Map<String, Object> properties;
-
-    /**
-     * The Hibernate SessionFactoryOptions used to start the CoherenceRegionFactory.
-     */
-    private SessionFactoryOptions sessionFactoryOptions;
 
     /**
      * Returns the CoherenceRegionFactory in the fixture.
@@ -75,14 +65,7 @@ public abstract class AbstractCoherenceRegionFactoryTests {
      * @return the SessionFactoryOptions used to start the CoherenceRegionFactory
      */
     protected SessionFactoryOptions getSessionFactoryOptions() {
-        final SessionFactoryOptions sessionFactoryOptions = mock(SessionFactoryOptions.class);
-        final StandardServiceRegistry serviceRegistry = mock(StandardServiceRegistry.class);
-        final StrategySelector strategySelector = mock(StrategySelector.class);
-        when(sessionFactoryOptions.getServiceRegistry()).thenReturn(serviceRegistry);
-        when(serviceRegistry.getService(StrategySelector.class)).thenReturn(strategySelector);
-        when(strategySelector.resolveDefaultableStrategy(Mockito.any(), Mockito.any(), Mockito.isA(DefaultCacheKeysFactory.class)))
-                .thenReturn(new DefaultCacheKeysFactory());
-        return sessionFactoryOptions;
+        return mock(SessionFactoryOptions.class);
     }
 
 

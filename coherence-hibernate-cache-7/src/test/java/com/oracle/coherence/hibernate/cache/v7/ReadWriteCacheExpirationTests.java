@@ -11,60 +11,58 @@ import com.oracle.coherence.hibernate.cache.v7.access.CoherenceStorageAccessImpl
 import com.oracle.coherence.hibernate.cache.v7.support.Foo;
 import com.tangosol.net.CacheFactory;
 import org.hibernate.Session;
-import org.hibernate.cfg.Configuration;
-import org.hibernate.cfg.Environment;
 import org.hibernate.stat.CacheRegionStatistics;
 import org.hibernate.stat.Statistics;
-import org.hibernate.testing.junit4.BaseCoreFunctionalTestCase;
-import org.junit.AfterClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.hibernate.testing.orm.junit.DomainModel;
+import org.hibernate.testing.orm.junit.ServiceRegistry;
+import org.hibernate.testing.orm.junit.SessionFactoryScope;
+import org.hibernate.testing.orm.junit.Setting;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Gunnar Hillert
  */
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class ReadWriteCacheExpirationTests extends BaseCoreFunctionalTestCase {
+@ServiceRegistry(settings = {
+		@Setting(name = "hibernate.cache.use_second_level_cache", value = "true"),
+		@Setting(name = "hibernate.cache.use_query_cache", value = "true"),
+		@Setting(name = "hibernate.cache.region.factory_class", value = "com.oracle.coherence.hibernate.cache.v7.CoherenceRegionFactory"),
+		@Setting(name = "com.oracle.coherence.hibernate.cache.cache_config_file_path", value = "tests-expiring-hibernate-second-level-cache-config.xml")
+})
+@org.hibernate.testing.orm.junit.SessionFactory(generateStatistics = true)
+@DomainModel(annotatedClasses = Foo.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class ReadWriteCacheExpirationTests {
 
 	private Long idOfSavedItem = null;
 
-	@AfterClass
+	@AfterAll
 	public static void after() {
 		CacheFactory.shutdown();
 	}
 
-	@Override
-	protected Class<?>[] getAnnotatedClasses() {
-		return new Class[] { Foo.class};
-	}
-
-	@Override
-	protected void configure(Configuration cfg) {
-		super.configure(cfg);
-		cfg.setProperty(Environment.CACHE_REGION_PREFIX, "");
-		cfg.setProperty(Environment.GENERATE_STATISTICS, "true");
-		cfg.setProperty(Environment.USE_SECOND_LEVEL_CACHE, "true");
-		cfg.setProperty(Environment.USE_QUERY_CACHE, "true");
-		cfg.setProperty(Environment.CACHE_REGION_FACTORY, CoherenceRegionFactory.class.getName());
-		cfg.setProperty("com.oracle.coherence.hibernate.cache.cache_config_file_path", "tests-expiring-hibernate-second-level-cache-config.xml");
-	}
-
 	@Test
-	public void test_01_addExpiringItem() {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(1)
+	public void addExpiringItem(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 
-		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) this.sessionFactory().getCache().getRegion("foo");
+		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) scope.getSessionFactory().getCache().getRegion("foo");
 		final CoherenceStorageAccessImpl coherenceStorageAccess = (CoherenceStorageAccessImpl) region.getCacheStorageAccess();
 
 		assertThat(coherenceStorageAccess.getDelegate().getElementCountInMemory()).isEqualTo(0);
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
 		final Foo itemToSave = new Foo("bar");
-		this.idOfSavedItem = (Long) session.save(itemToSave);
+		session.persist(itemToSave);
+		this.idOfSavedItem = itemToSave.getId();
 		session.flush();
 		session.getTransaction().commit();
 
@@ -76,18 +74,19 @@ public class ReadWriteCacheExpirationTests extends BaseCoreFunctionalTestCase {
 	}
 
 	@Test
-	public void test_02_retrieveUnExpiredItem() throws InterruptedException {
-		final Statistics statistics = this.sessionFactory().getStatistics();
+	@Order(2)
+	public void retrieveUnExpiredItem(SessionFactoryScope scope) {
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) this.sessionFactory().getCache().getRegion("foo");
+		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) scope.getSessionFactory().getCache().getRegion("foo");
 		final CoherenceStorageAccessImpl coherenceStorageAccess = (CoherenceStorageAccessImpl) region.getCacheStorageAccess();
 
 		assertThat(coherenceStorageAccess.getDelegate().getElementCountInMemory()).isEqualTo(1);
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
-		final Foo foo = session.get(Foo.class, this.idOfSavedItem);
+		final Foo foo = session.find(Foo.class, this.idOfSavedItem);
 		session.getTransaction().commit();
 
 		assertThat(foo).isNotNull();
@@ -98,21 +97,22 @@ public class ReadWriteCacheExpirationTests extends BaseCoreFunctionalTestCase {
 	}
 
 	@Test
-	public void test_03_retrieveExpiredItem() throws InterruptedException {
+	@Order(3)
+	public void retrieveExpiredItem(SessionFactoryScope scope) throws InterruptedException {
 
-		final Statistics statistics = this.sessionFactory().getStatistics();
+		final Statistics statistics = scope.getSessionFactory().getStatistics();
 		final CacheRegionStatistics itemStatistics = statistics.getDomainDataRegionStatistics("foo");
 
-		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) this.sessionFactory().getCache().getRegion("foo");
+		final CoherenceDomainDataRegionImpl region = (CoherenceDomainDataRegionImpl) scope.getSessionFactory().getCache().getRegion("foo");
 		final CoherenceStorageAccessImpl coherenceStorageAccess = (CoherenceStorageAccessImpl) region.getCacheStorageAccess();
 
 		Thread.sleep(1500);
 
 		assertThat(coherenceStorageAccess.getDelegate().getElementCountInMemory()).isEqualTo(0);
 
-		final Session session = openSession();
+		final Session session = scope.getSessionFactory().openSession();
 		session.beginTransaction();
-		final Foo foo = session.get(Foo.class, this.idOfSavedItem);
+		final Foo foo = session.find(Foo.class, this.idOfSavedItem);
 		session.getTransaction().commit();
 
 		assertThat(foo).isNotNull();

@@ -13,8 +13,8 @@ import com.oracle.coherence.hibernate.cache.v7.region.CoherenceRegionValue;
 import com.tangosol.net.CacheFactory;
 import com.tangosol.net.ConfigurableCacheFactory;
 import com.tangosol.net.NamedCache;
-import org.junit.AfterClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class AfterInsertProcessorTests {
 
-	@AfterClass
+	@AfterAll
 	public static void after() {
 		CacheFactory.shutdown();
 	}

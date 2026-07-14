@@ -8,7 +8,7 @@ package com.oracle.coherence.hibernate.cachestore;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -294,7 +294,7 @@ public class HibernateCacheLoader extends Base implements CacheLoader {
     public Map loadAll(List keys) {
         ensureInitialized();
 
-        final Map results = new HashMap();
+        final Map results = new LinkedHashMap();
 
         Transaction transaction = null;
 
@@ -327,6 +327,9 @@ public class HibernateCacheLoader extends Base implements CacheLoader {
             // Need a way to extract the key from an entity that we know
             // nothing about.
             for (Object entity : result) {
+                if (entity == null) {
+                    continue;
+                }
                 final Object[] propertyValues = entityPersister.getValues(entity);
                 for (Object propertyValue : propertyValues) {
                     Hibernate.initialize(propertyValue);
@@ -335,6 +338,9 @@ public class HibernateCacheLoader extends Base implements CacheLoader {
 
             // Iterate through the results and place into the return map
             for (Object entity : result) {
+                if (entity == null) {
+                    continue;
+                }
                 final Object id = entityPersister.getIdentifier(entity, sessionImplementor);
                 results.put(id, entity);
             }
