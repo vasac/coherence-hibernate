@@ -21,9 +21,13 @@ public class Main {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
 	public static void main(String[] args) {
+		System.setProperty("coherence.localhost", "127.0.0.1");
+		System.setProperty("coherence.ttl", "0");
+		System.setProperty("coherence.wka", "127.0.0.1");
+		System.setProperty("java.net.preferIPv4Stack", "true");
 
 		final Server hsqldbServer = new Server();
-		hsqldbServer.setAddress("localhost");
+		hsqldbServer.setAddress("127.0.0.1");
 		hsqldbServer.setPort(9001);
 		hsqldbServer.setSilent(true);
 		hsqldbServer.setDatabaseName(0, "mainDb");

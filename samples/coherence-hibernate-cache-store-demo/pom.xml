@@ -25,7 +25,8 @@
 
 	<properties>
 		<coherence.hibernate.root>${basedir}/../..</coherence.hibernate.root>
-		<hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
+		<expressly.version>6.0.0</expressly.version>
+		<hibernate-validator.version>9.1.2.Final</hibernate-validator.version>
 		<mainClass>com.oracle.coherence.hibernate.demo.cachestore.Main</mainClass>
 	</properties>
 
@@ -159,6 +160,11 @@
 			<groupId>org.hibernate.validator</groupId>
 			<artifactId>hibernate-validator</artifactId>
 			<version>${hibernate-validator.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.expressly</groupId>
+			<artifactId>expressly</artifactId>
+			<version>${expressly.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.hibernate.orm</groupId>

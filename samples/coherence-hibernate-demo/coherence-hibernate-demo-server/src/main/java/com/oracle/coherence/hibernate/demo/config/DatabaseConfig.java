@@ -10,8 +10,8 @@ import javax.sql.DataSource;
 
 import org.hsqldb.server.Server;
 
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -31,7 +31,7 @@ public class DatabaseConfig {
     @Bean(initMethod = "start", destroyMethod = "stop")
     public Server hsqlServer() {
         final Server server = new Server();
-        server.setAddress("localhost");
+        server.setAddress("127.0.0.1");
         server.setPort(9001);
         server.setSilent(false);
         server.setDatabaseName(0, "mainDb");
