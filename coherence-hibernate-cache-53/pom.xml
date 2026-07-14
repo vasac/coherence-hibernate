@@ -13,7 +13,7 @@
     <parent>
         <artifactId>coherence-hibernate-parent</artifactId>
         <groupId>com.oracle.coherence.hibernate</groupId>
-        <version>3.0.4-SNAPSHOT</version>
+        <version>4.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>coherence-hibernate-cache-53</artifactId>
@@ -49,7 +49,7 @@
         <dependency>
             <groupId>com.oracle.coherence.hibernate</groupId>
             <artifactId>coherence-hibernate-cache-core</artifactId>
-            <version>3.0.4-SNAPSHOT</version>
+            <version>4.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -65,7 +65,7 @@
         <dependency>
             <groupId>com.oracle.coherence.hibernate</groupId>
             <artifactId>coherence-hibernate-cache-core</artifactId>
-            <version>3.0.4-SNAPSHOT</version>
+            <version>4.0.0-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
