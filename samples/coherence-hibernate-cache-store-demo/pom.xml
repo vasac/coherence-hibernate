@@ -142,7 +142,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.oracle.coherence.hibernate</groupId>
-			<artifactId>coherence-hibernate-cache-53</artifactId>
+			<artifactId>coherence-hibernate-cache-7</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
@@ -153,18 +153,17 @@
 		<dependency>
 			<groupId>org.hibernate.orm</groupId>
 			<artifactId>hibernate-core</artifactId>
-			<version>${hibernate6.version}</version>
+			<version>${hibernate7.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.hibernate.validator</groupId>
 			<artifactId>hibernate-validator</artifactId>
 			<version>${hibernate-validator.version}</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.hibernate/hibernate-hikaricp -->
 		<dependency>
-			<groupId>org.hibernate</groupId>
+			<groupId>org.hibernate.orm</groupId>
 			<artifactId>hibernate-hikaricp</artifactId>
-			<version>${hibernate6.version}</version>
+			<version>${hibernate7.version}</version>
 		</dependency>
 
 		<dependency>
