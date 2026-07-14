@@ -26,7 +26,6 @@ import com.tangosol.net.NamedCache;
 import com.tangosol.net.Session;
 import com.tangosol.net.options.WithClassLoader;
 import com.tangosol.net.options.WithConfiguration;
-import org.hibernate.boot.registry.selector.spi.StrategySelector;
 import org.hibernate.boot.spi.SessionFactoryOptions;
 import org.hibernate.cache.cfg.spi.DomainDataRegionBuildingContext;
 import org.hibernate.cache.cfg.spi.DomainDataRegionConfig;
@@ -38,7 +37,6 @@ import org.hibernate.cache.spi.support.DomainDataStorageAccess;
 import org.hibernate.cache.spi.support.RegionFactoryTemplate;
 import org.hibernate.cache.spi.support.RegionNameQualifier;
 import org.hibernate.cache.spi.support.StorageAccess;
-import org.hibernate.cfg.Environment;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,22 +94,9 @@ public class CoherenceRegionFactory extends RegionFactoryTemplate {
      */
     private transient SessionFactoryOptions sessionFactoryOptions;
 
-    /**
-     * The Hibernate {@link CacheKeysFactory} to use. Hibernate ships with 2 {@link CacheKeysFactory}
-     * implementations:
-     *
-     * <ul>
-     *   <li>{{@link org.hibernate.cache.internal.DefaultCacheKeysFactory}}
-     *   <li>{@link org.hibernate.cache.internal.SimpleCacheKeysFactory}
-     * </ul>
-     * <p>
-     * If none is specified, then the {@link org.hibernate.cache.internal.DefaultCacheKeysFactory} is used.
-     */
-    private transient CacheKeysFactory cacheKeysFactory;
-
     @Override
     protected CacheKeysFactory getImplicitCacheKeysFactory() {
-        return this.cacheKeysFactory;
+        return DefaultCacheKeysFactory.INSTANCE;
     }
 
     /**
@@ -152,15 +137,6 @@ public class CoherenceRegionFactory extends RegionFactoryTemplate {
 
         if (this.systemPropertyResolver.getProperty(CoherenceHibernateProperties.COHERENCE_LOGGER_PROPERTY_NAME) == null) {
             this.systemPropertyResolver.addCoherenceProperty(CoherenceHibernateProperties.COHERENCE_LOGGER_PROPERTY_NAME, CoherenceHibernateProperties.COHERENCE_LOGGER_DEFAULT_VALUE);
-        }
-
-        if (this.sessionFactoryOptions != null) {
-            final StrategySelector selector = this.sessionFactoryOptions.getServiceRegistry().getService(StrategySelector.class);
-            this.cacheKeysFactory = selector.resolveDefaultableStrategy(CacheKeysFactory.class,
-                    configValues.get(Environment.CACHE_KEYS_FACTORY), new DefaultCacheKeysFactory());
-        }
-        else {
-            this.cacheKeysFactory = new DefaultCacheKeysFactory();
         }
 
         this.systemPropertyResolver.initialize();
@@ -316,7 +292,7 @@ public class CoherenceRegionFactory extends RegionFactoryTemplate {
                 regionConfig,
                 this,
                 createDomainDataStorageAccess(regionConfig, buildingContext),
-                this.cacheKeysFactory,
+                getImplicitCacheKeysFactory(),
                 buildingContext
         );
     }

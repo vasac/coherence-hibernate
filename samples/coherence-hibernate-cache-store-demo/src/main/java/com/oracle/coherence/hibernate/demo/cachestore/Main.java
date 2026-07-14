@@ -47,7 +47,7 @@ public class Main {
 					.buildSessionFactory();
 
 			sessionFactory.inSession((session) -> {
-				final Book coherenceBook = session.get(Book.class, "9781847196125");
+				final Book coherenceBook = session.find(Book.class, "9781847196125");
 				LOGGER.info("Book: {}", coherenceBook);
 			});
 
@@ -58,7 +58,7 @@ public class Main {
 			// Let's query the database for all books
 
 			sessionFactory.inSession((session) ->
-					session.createQuery("from Book", Book.class)
+					session.createSelectionQuery("from Book", Book.class)
 						.getResultList().forEach((book) -> LOGGER.info("Book: {}", book)));
 
 			// At this point the size of the Coherence Map should only be 1
