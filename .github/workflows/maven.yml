@@ -17,7 +17,7 @@ jobs:
     if: github.repository_owner == 'coherence-community'
     strategy:
       matrix:
-        java-version: [ '17', '21' ]
+        java-version: [ '17', '21', '25' ]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4.2.2
@@ -35,6 +35,11 @@ jobs:
           ${{ runner.os }}-m2-
     - name: Build - Hibernate 7.4.x on Java ${{ matrix.java-version }}
       run: ./mvnw clean verify -B -Pcoverage
+    - name: Verify Java 17 bytecode baseline
+      run: |
+        javap -verbose coherence-hibernate-cache-7/target/classes/com/oracle/coherence/hibernate/cache/v7/CoherenceRegionFactory.class | grep -q 'major version: 61'
+    - name: Run cache-store demo on Java ${{ matrix.java-version }}
+      run: java -jar samples/coherence-hibernate-cache-store-demo/target/coherence-hibernate-cache-store-demo-parent-4.0.0-SNAPSHOT.jar
     - name: Analyze Hibernate 7.4.x build with Sonar
       if: "github.event_name != 'pull_request' && matrix.java-version == '17'"
       run: |

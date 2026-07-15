@@ -14,7 +14,7 @@
 
 To build the Coherence Hibernate project you need to have the following software installed:
 
-- https://www.oracle.com/java/technologies/downloads/[Java SE Development Kit 17 or 21].
+- https://www.oracle.com/java/technologies/downloads/[Java SE Development Kit 17, 21, or 25].
 - http://maven.apache.org/[Apache Maven]
 
 Once you have these installed building the entire source tree is as simple as executing the following shell command

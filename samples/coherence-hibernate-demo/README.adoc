@@ -98,7 +98,7 @@ You can also see statistics via the Spring Boot metrics endpoint `+http://localh
 
 == More Details
 
-The application uses Spring Boot `4.1`, Hibernate ORM `7.4`, and Jakarta Persistence `3.2` on Java 17 or 21.
+The application uses Spring Boot `4.1`, Hibernate ORM `7.4`, and Jakarta Persistence `3.2` on Java 17, 21, or 25.
 
 We have added 2 domain objects to the application:
 

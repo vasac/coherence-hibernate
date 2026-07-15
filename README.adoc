@@ -31,7 +31,7 @@ continue to support Java EE.
 |===
 |Coherence Hibernate | Java | Coherence CE | Hibernate     | Jakarta | Git Branch/Tag
 
-|*4.0.x*             | `17`, `21` | `25.03` | `7.4.x`       | ✔       | `main`
+|*4.0.x*             | `17`, `21`, `25` | `25.03` | `7.4.x`       | ✔       | `main`
 |*3.0.x*             | `17` | `24.09`      | `5.6`, `6.x`  | ✔       | `3.0.x`
 |*2.3.x*             | `11` | `22.06`      | `4.3` - `5.6` |         | `2.3.x`
 |===
@@ -78,7 +78,7 @@ https://repo1.maven.org/maven2/com/oracle/coherence/hibernate/[Maven Central].
 |===
 |Coherence Hibernate       | Java | Coherence CE | Jakarta EE | Git Branch/Tag
 
-|*{main-snapshot-version}* | `17`, `21` | `25.03.1` | ✅       | `4.0.x`
+|*{main-snapshot-version}* | `17`, `21`, `25` | `25.03.1` | ✅       | `main`
 |*{main-release-version}*  | `17` | `24.09`      | ✅         | `v{main-release-version}`
 |*{2x-release-version}*    | `11` | `22.06.7`    |            | `v{2x-release-version}`
 |*{2x-snapshot-version}*   | `11` | `22.06.7`    |            | `2.3.x`
@@ -113,7 +113,7 @@ repository, and you can find those in the https://github.com/coherence-community
 
 In order to build Coherence Hibernate (main branch), you need to have installed:
 
-- https://www.oracle.com/java/technologies/downloads/#java17[JDK 17] or JDK 21
+- https://www.oracle.com/java/technologies/downloads/[JDK 17, 21, or 25]
 - https://help.github.com/set-up-git-redirect[Git]
 
 === Check out sources
@@ -127,7 +127,7 @@ cd coherence-hibernate
 ----
 
 Coherence Hibernate uses https://maven.apache.org/[Apache Maven] as build tool. You do not need to have Maven installed to
-build the project. Simply use the provided https://github.com/takari/maven-wrapper[Maven Wrapper], e.g.:
+build the project. Simply use the provided https://maven.apache.org/wrapper/[Apache Maven Wrapper], e.g.:
 
 - *Windows:* `mvnw.cmd clean package`
 - *Linux/Mac:* `./mvnw clean package`
