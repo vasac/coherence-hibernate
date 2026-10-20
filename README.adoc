@@ -71,6 +71,11 @@ These are workflow configurations, not a report of completed GitHub Actions runs
 development binaries; it does not establish support for released Coherence `26.10` or later. Hibernate and Coherence
 are provided dependencies, so applications must declare the versions appropriate for their validated deployment.
 
+Snapshot compatibility CI tracks the latest published build independently in each leg. Only these legs enable the
+snapshot repository; they refresh the Coherence dependency before testing. Maven caches are isolated by job, JDK and
+compatibility versions. A snapshot published during a workflow may result in different binaries across legs;
+this is development compatibility coverage, not a fixed-build qualification.
+
 === Application serialization permissions
 
 The tested `26.10` development snapshots default to `coherence.security.mode=hardened`, which enforces serialization
