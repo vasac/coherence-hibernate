@@ -49,8 +49,8 @@ line provides `coherence-hibernate-cache-53` for Hibernate `5.6.x` and `coherenc
 
 The default `4.x` build uses Hibernate ORM `7.4.10.Final` and Coherence CE `15.1.1-0-5`, as declared in
 link:pom.xml[`pom.xml`]. The link:.github/workflows/maven.yml[GitHub Actions workflow] configures the complete
-default-version reactor on Java 17, 21, and 25. Its compatibility job, enabled for `main` and pull requests targeting
-`main`, configures the following combinations:
+default-version reactor on Java 17, 21, and 25. Its compatibility job runs on `main`, for pull requests targeting
+`main`, and for manual workflow runs. It configures the following combinations:
 
 [cols="2,2,1,2", options="header"]
 |===
